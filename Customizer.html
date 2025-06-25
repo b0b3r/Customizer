@@ -1,0 +1,270 @@
+<!DOCTYPE html>
+<html lang="ru">
+<head>
+  <meta charset="UTF-8">
+  <title>Редактор CSS-переменных для MHTML</title>
+  <style>
+    body { display: flex; height: 100vh; margin: 0; font-family: sans-serif; }
+    #sidebar { width: 350px; background: #f7f7f7; border-left: 1px solid #ccc; padding: 20px; overflow-y: auto; }
+    #main { flex: 1; display: flex; flex-direction: column; }
+    #iframe { flex: 1; border: none; width: 100%; }
+    .var-row { margin-bottom: 12px; }
+    .var-row label { display: block; font-size: 13px; margin-bottom: 2px; }
+    .var-row input[type="color"] { width: 40px; height: 24px; vertical-align: middle; }
+    .var-row input[type="text"] { width: 120px; }
+    #export { margin-top: 20px; width: 100%; }
+  </style>
+</head>
+<body>
+  <div id="main">
+    <input type="file" id="file" accept=".mhtml,.mht,.html,.htm">
+    <iframe id="iframe" sandbox="allow-same-origin allow-scripts"></iframe>
+  </div>
+  <div id="sidebar">
+    <h3>CSS-переменные</h3>
+    <button id="pick-element" type="button">Выбрать элемент</button>
+    <button id="show-all" type="button" style="display:none; margin-left:10px;">Показать все</button>
+    <form id="vars"></form>
+    <button id="export">Экспорт в JSON</button>
+  </div>
+  <script>
+    let cssVars = {};
+    let iframeDoc = null;
+    let selectedElement = null;
+    let allVarsSnapshot = null;
+    let highlightBox = null;
+
+    // Загрузка MHTML
+    document.getElementById('file').addEventListener('change', async e => {
+      const file = e.target.files[0];
+      if (!file) return;
+      const ext = file.name.split('.').pop().toLowerCase();
+      const iframe = document.getElementById('iframe');
+      if (ext === 'html' || ext === 'htm') {
+        // Для HTML-файлов
+        const content = await file.text();
+        const blob = new Blob([content], {type: 'text/html'});
+        const url = URL.createObjectURL(blob);
+        iframe.src = url;
+        iframe.onload = () => {
+          try {
+            iframeDoc = iframe.contentDocument || iframe.contentWindow.document;
+            extractVars();
+          } catch (err) {
+            alert('Ошибка доступа к содержимому. Возможно, CORS.');
+          }
+        };
+      } else {
+        // Для MHTML-файлов (старый код)
+        const url = URL.createObjectURL(file);
+        iframe.src = url;
+        iframe.onload = () => {
+          try {
+            iframeDoc = iframe.contentDocument || iframe.contentWindow.document;
+            extractVars();
+          } catch (err) {
+            alert('Ошибка доступа к содержимому. Возможно, CORS.');
+          }
+        };
+      }
+    });
+
+    // Извлечение CSS-переменных
+    function extractVars() {
+      cssVars = {};
+      // 1. Стили из <style> и <link>
+      const styles = Array.from(iframeDoc.querySelectorAll('style,link[rel="stylesheet"]'));
+      styles.forEach(styleNode => {
+        let cssText = '';
+        if (styleNode.tagName === 'STYLE') {
+          cssText = styleNode.textContent;
+        } else if (styleNode.tagName === 'LINK') {
+          try {
+            const sheet = Array.from(iframeDoc.styleSheets).find(s => s.ownerNode === styleNode);
+            if (sheet && sheet.cssRules) {
+              for (let rule of sheet.cssRules) {
+                cssText += rule.cssText + '\n';
+              }
+            }
+          } catch {}
+        }
+        const varRegex = /--([\w-]+)\s*:\s*([^;]+);/g;
+        let match;
+        while ((match = varRegex.exec(cssText))) {
+          cssVars[match[1]] = match[2].trim();
+        }
+      });
+
+      // 2. Стили на <html> и <body>
+      ['html', 'body'].forEach(tag => {
+        const el = iframeDoc.querySelector(tag);
+        if (el && el.hasAttribute('style')) {
+          const style = el.getAttribute('style');
+          const varRegex = /--([\w-]+)\s*:\s*([^;]+);/g;
+          let match;
+          while ((match = varRegex.exec(style))) {
+            cssVars[match[1]] = match[2].trim();
+          }
+        }
+      });
+
+      renderVars();
+    }
+
+    // Режим выбора элемента с подсветкой
+    const pickBtn = document.getElementById('pick-element');
+    const showAllBtn = document.getElementById('show-all');
+    pickBtn.onclick = () => {
+      if (!iframeDoc) return;
+      pickBtn.disabled = true;
+      iframeDoc.body.style.cursor = 'crosshair';
+
+      // Подсветка при наведении
+      const mouseoverHandler = (e) => {
+        highlightElement(e.target);
+      };
+      const mouseoutHandler = (e) => {
+        removeHighlight();
+      };
+
+      // Клик — выбор элемента
+      const clickHandler = (e) => {
+        e.preventDefault();
+        e.stopPropagation();
+        selectedElement = e.target;
+        iframeDoc.body.style.cursor = '';
+        pickBtn.disabled = false;
+        showAllBtn.style.display = '';
+        removeHighlight();
+        iframeDoc.removeEventListener('mouseover', mouseoverHandler, true);
+        iframeDoc.removeEventListener('mouseout', mouseoutHandler, true);
+        iframeDoc.removeEventListener('click', clickHandler, true);
+
+        // Получаем переменные для выбранного элемента и родителей
+        let vars = {};
+        let el = selectedElement;
+        while (el) {
+          const computed = iframeDoc.defaultView.getComputedStyle(el);
+          for (let i = 0; i < computed.length; i++) {
+            const name = computed[i];
+            if (name.startsWith('--')) {
+              vars[name.replace('--','')] = computed.getPropertyValue(name).trim();
+            }
+          }
+          el = el.parentElement;
+        }
+        // Если переменных нет — берём из :root
+        if (Object.keys(vars).length === 0) {
+          const root = iframeDoc.documentElement;
+          const computed = iframeDoc.defaultView.getComputedStyle(root);
+          for (let i = 0; i < computed.length; i++) {
+            const name = computed[i];
+            if (name.startsWith('--')) {
+              vars[name.replace('--','')] = computed.getPropertyValue(name).trim();
+            }
+          }
+        }
+        allVarsSnapshot = {...cssVars}; // сохраняем полный список
+        cssVars = vars;
+        renderVars(true); // режим для выбранного элемента
+      };
+
+      iframeDoc.addEventListener('mouseover', mouseoverHandler, true);
+      iframeDoc.addEventListener('mouseout', mouseoutHandler, true);
+      iframeDoc.addEventListener('click', clickHandler, true);
+    };
+
+    function highlightElement(el) {
+      removeHighlight();
+      const rect = el.getBoundingClientRect();
+      highlightBox = iframeDoc.createElement('div');
+      highlightBox.style.position = 'fixed';
+      highlightBox.style.zIndex = '999999';
+      highlightBox.style.pointerEvents = 'none';
+      highlightBox.style.border = '2px solid #1976d2';
+      highlightBox.style.background = 'rgba(25, 118, 210, 0.08)';
+      highlightBox.style.left = rect.left + 'px';
+      highlightBox.style.top = rect.top + 'px';
+      highlightBox.style.width = rect.width + 'px';
+      highlightBox.style.height = rect.height + 'px';
+      iframeDoc.body.appendChild(highlightBox);
+    }
+
+    function removeHighlight() {
+      if (highlightBox && highlightBox.parentNode) {
+        highlightBox.parentNode.removeChild(highlightBox);
+        highlightBox = null;
+      }
+    }
+
+    showAllBtn.onclick = () => {
+      if (allVarsSnapshot) {
+        cssVars = {...allVarsSnapshot};
+        renderVars();
+        showAllBtn.style.display = 'none';
+        selectedElement = null;
+      }
+    };
+
+    function renderVars(forSelected=false) {
+      const form = document.getElementById('vars');
+      form.innerHTML = '';
+      if (Object.keys(cssVars).length === 0) {
+        form.innerHTML = '<div style="color:#888;">Переменные не найдены</div>';
+        return;
+      }
+      Object.entries(cssVars).forEach(([name, value]) => {
+        const row = document.createElement('div');
+        row.className = 'var-row';
+        const label = document.createElement('label');
+        label.textContent = `--${name}`;
+        row.appendChild(label);
+        let input;
+        if (/^#([0-9a-f]{3,8})$/i.test(value) || /^rgb/.test(value)) {
+          input = document.createElement('input');
+          input.type = 'color';
+          input.value = rgb2hex(value) || value;
+        } else {
+          input = document.createElement('input');
+          input.type = 'text';
+          input.value = value;
+        }
+        input.oninput = (e) => {
+          cssVars[name] = e.target.value;
+          if (forSelected && selectedElement) {
+            selectedElement.style.setProperty(`--${name}`, e.target.value);
+          } else {
+            updateVar(name, e.target.value);
+          }
+        };
+        row.appendChild(input);
+        form.appendChild(row);
+      });
+    }
+
+    // Применение переменной в iframe
+    function updateVar(name, value) {
+      if (!iframeDoc) return;
+      iframeDoc.documentElement.style.setProperty(`--${name}`, value);
+    }
+
+    // Экспорт в JSON
+    document.getElementById('export').onclick = function(e) {
+      e.preventDefault();
+      const json = JSON.stringify(cssVars, null, 2);
+      const blob = new Blob([json], {type: 'application/json'});
+      const a = document.createElement('a');
+      a.href = URL.createObjectURL(blob);
+      a.download = 'css-vars.json';
+      a.click();
+    };
+
+    // rgb/rgba в hex
+    function rgb2hex(rgb) {
+      const res = rgb.match(/^rgba?\((\d+),\s*(\d+),\s*(\d+)/i);
+      if (!res) return null;
+      return "#" + ((1 << 24) + (+res[1] << 16) + (+res[2] << 8) + (+res[3])).toString(16).slice(1);
+    }
+  </script>
+</body>
+</html>
