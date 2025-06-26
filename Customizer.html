@@ -1,49 +1,512 @@
-//--тест--//
-
 <!DOCTYPE html>
 <html lang="ru">
 <head>
   <meta charset="UTF-8">
-  <title>Редактор CSS-переменных для MHTML</title>
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>MHTML Customizer</title>
+  
+  <!-- Material Design Icons -->
+  <link href="https://fonts.googleapis.com/icon?family=Material+Icons" rel="stylesheet">
+  
+  <!-- Material Design Components -->
+  <link rel="stylesheet" href="https://unpkg.com/material-components-web@latest/dist/material-components-web.min.css">
+  <script src="https://unpkg.com/material-components-web@latest/dist/material-components-web.min.js"></script>
+  
   <style>
-    body { display: flex; height: 100vh; margin: 0; font-family: sans-serif; }
-    #sidebar { width: 350px; background: #f7f7f7; border-left: 1px solid #ccc; padding: 20px; overflow-y: auto; }
-    #main { flex: 1; display: flex; flex-direction: column; }
-    #iframe { flex: 1; border: none; width: 100%; }
-    .var-row { margin-bottom: 12px; }
-    .var-row label { display: block; font-size: 13px; margin-bottom: 2px; }
-    .var-row input[type="color"] { width: 40px; height: 24px; vertical-align: middle; }
-    .var-row input[type="text"] { width: 120px; }
-    #export { margin-top: 20px; width: 100%; }
+    :root {
+      --mdc-theme-primary: #6200ee;
+      --mdc-theme-secondary: #018786;
+      --mdc-theme-background: #ffffff;
+      --mdc-theme-surface: #ffffff;
+      --mdc-theme-on-primary: #ffffff;
+      --mdc-theme-on-secondary: #ffffff;
+      --mdc-theme-on-surface: #000000;
+    }
+    
+    * {
+      box-sizing: border-box;
+      margin: 0;
+      padding: 0;
+    }
+    
+    body {
+      display: flex;
+      flex-direction: column;
+      height: 100vh;
+      font-family: 'Roboto', sans-serif;
+      background-color: #f5f5f5;
+      overflow: hidden;
+    }
+    
+    /* Header Styles */
+    .mdc-top-app-bar {
+      position: relative;
+      z-index: 7;
+      box-shadow: 0 2px 4px rgba(0,0,0,0.1);
+    }
+    
+    .mdc-top-app-bar__row {
+      display: flex;
+      align-items: center;
+      width: 100%;
+      padding: 0;
+    }
+    
+    .mdc-top-app-bar__section--align-start {
+      flex: 0 0 auto;
+      min-width: 0;
+    }
+    
+    .mdc-top-app-bar__section--align-end {
+      flex: 1 1 0%;
+      min-width: 0;
+    }
+    
+    .mdc-top-app-bar__title {
+      white-space: nowrap;
+      flex: 0 0 auto;
+      padding-left: 16px;
+      padding-right: 24px;
+      font-size: 22px;
+      font-weight: 500;
+      color: #fff;
+      background: none;
+      box-shadow: none;
+    }
+    
+    .header-content {
+      display: flex;
+      align-items: center;
+      width: 100%;
+      padding: 0;
+    }
+    
+    .file-info {
+      display: flex;
+      align-items: center;
+      margin-right: 24px;
+      padding: 0 0 0 16px;
+      min-width: 0;
+      color: #fff;
+    }
+    
+    .file-info .material-icons {
+      margin-right: 8px;
+      color: #fff;
+    }
+    
+    .filename {
+      font-size: 14px;
+      color: #fff;
+      white-space: nowrap;
+      overflow: hidden;
+      text-overflow: ellipsis;
+      max-width: 300px;
+      margin-left: 8px;
+    }
+    
+    .actions-container {
+      display: flex;
+      align-items: center;
+      flex: 1 1 0%;
+      gap: 0;
+      justify-content: space-between;
+      min-width: 0;
+    }
+    
+    .center-actions {
+      display: flex;
+      align-items: center;
+      gap: 8px;
+      margin: 0 auto;
+    }
+    
+    .export-action {
+      margin-left: auto;
+    }
+    
+    .header-content .mdc-button {
+      color: #fff;
+      --mdc-theme-primary: #fff;
+      --mdc-theme-on-primary: #6200ee;
+      background: rgba(255,255,255,0.12);
+      border: none;
+    }
+    .header-content .mdc-button .mdc-button__icon {
+      color: #fff;
+    }
+    .header-content .mdc-button:disabled,
+    .header-content .mdc-button.mdc-button--disabled {
+      color: rgba(255,255,255,0.5) !important;
+      background: rgba(255,255,255,0.08) !important;
+      border: none !important;
+    }
+    .header-content .mdc-button:disabled .mdc-button__icon,
+    .header-content .mdc-button.mdc-button--disabled .mdc-button__icon {
+      color: rgba(255,255,255,0.3) !important;
+    }
+    
+    /* Main Content */
+    .main-content {
+      display: flex;
+      flex: 1;
+      overflow: hidden;
+      position: relative;
+    }
+    
+    /* Preview Area */
+    .preview-container {
+      flex: 1;
+      display: flex;
+      flex-direction: column;
+      position: relative;
+      background: white;
+      border-right: 1px solid #ddd;
+    }
+    
+    .preview-header {
+      padding: 8px 16px;
+      background: #f5f5f5;
+      border-bottom: 1px solid #ddd;
+      font-size: 14px;
+      color: #666;
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+    }
+    
+    .preview-actions {
+      display: flex;
+      gap: 8px;
+    }
+    
+    #iframe {
+      flex: 1;
+      border: none;
+      width: 100%;
+      background: white;
+    }
+    
+    /* Sidebar */
+    .sidebar {
+      width: 360px;
+      background: white;
+      display: flex;
+      flex-direction: column;
+      border-left: 1px solid #ddd;
+      box-shadow: -2px 0 4px rgba(0,0,0,0.05);
+      z-index: 2;
+      overflow: hidden;
+    }
+    
+    .sidebar-header {
+      padding: 16px;
+      border-bottom: 1px solid #eee;
+      background: #fafafa;
+    }
+    
+    .sidebar-content {
+      flex: 1;
+      overflow-y: auto;
+      padding: 16px;
+    }
+    
+    .var-group {
+      margin-bottom: 24px;
+    }
+    
+    .var-group-title {
+      font-size: 16px;
+      font-weight: 500;
+      margin-bottom: 12px;
+      color: #333;
+      display: flex;
+      align-items: center;
+    }
+    
+    .var-group-title .material-icons {
+      font-size: 20px;
+      margin-right: 8px;
+      color: #6200ee;
+    }
+    
+    .var-row {
+      display: flex;
+      align-items: center;
+      padding: 8px 0;
+      border-bottom: 1px solid #f0f0f0;
+    }
+    
+    .var-label {
+      flex: 1;
+      font-size: 14px;
+      color: #444;
+      overflow: hidden;
+      text-overflow: ellipsis;
+    }
+    
+    .var-controls {
+      display: flex;
+      align-items: center;
+      gap: 8px;
+    }
+    
+    .color-preview {
+      width: 24px;
+      height: 24px;
+      border-radius: 4px;
+      border: 1px solid #ddd;
+      cursor: pointer;
+    }
+    
+    .text-value {
+      font-size: 13px;
+      color: #666;
+      min-width: 80px;
+      text-align: right;
+    }
+    
+    /* Empty State */
+    .empty-state {
+      display: flex;
+      flex-direction: column;
+      align-items: center;
+      justify-content: center;
+      text-align: center;
+      padding: 40px 20px;
+      color: #888;
+    }
+    
+    .empty-state .material-icons {
+      font-size: 48px;
+      margin-bottom: 16px;
+      color: #ccc;
+    }
+    
+    .empty-state p {
+      max-width: 300px;
+      line-height: 1.5;
+    }
+    
+    /* Debug Panel */
+    .debug-panel {
+      margin-top: 24px;
+      padding: 16px;
+      background: #f9f9f9;
+      border-radius: 4px;
+      font-size: 13px;
+      color: #666;
+      display: none;
+    }
+    
+    .debug-title {
+      font-weight: 500;
+      margin-bottom: 8px;
+      color: #444;
+    }
+    
+    .debug-content {
+      font-family: monospace;
+      white-space: pre-wrap;
+      font-size: 12px;
+      max-height: 150px;
+      overflow-y: auto;
+    }
+    
+    /* Responsive */
+    @media (max-width: 1200px) {
+      .sidebar {
+        width: 320px;
+      }
+    }
+    
+    @media (max-width: 900px) {
+      .sidebar {
+        position: absolute;
+        right: 0;
+        top: 0;
+        bottom: 0;
+        transform: translateX(100%);
+        transition: transform 0.3s ease;
+      }
+      
+      .sidebar.open {
+        transform: translateX(0);
+      }
+      
+      .sidebar-toggle {
+        display: block !important;
+      }
+    }
   </style>
 </head>
 <body>
-  <div id="main">
-    <input type="file" id="file" accept=".mhtml,.mht,.html,.htm">
-    <iframe id="iframe" sandbox="allow-same-origin allow-scripts"></iframe>
+  <!-- Header -->
+  <header class="mdc-top-app-bar">
+    <div class="mdc-top-app-bar__row">
+      <section class="mdc-top-app-bar__section mdc-top-app-bar__section--align-start">
+        <span class="mdc-top-app-bar__title">Кастомизатор 1.0</span>
+      </section>
+      <section class="mdc-top-app-bar__section mdc-top-app-bar__section--align-end" role="toolbar" style="flex:1 1 0%; min-width:0;">
+        <div class="header-content">
+          <div class="actions-container">
+            <div class="file-info">
+              <button id="file-button" class="mdc-button mdc-button--tonal">
+                <i class="material-icons mdc-button__icon" aria-hidden="true">folder_open</i>
+                <span class="mdc-button__label">Загрузить файл</span>
+                <input type="file" id="file" accept=".mhtml,.mht,.html,.htm" style="display:none;">
+              </button>
+              <span id="filename" class="filename">Файл не выбран</span>
+            </div>
+            <div class="center-actions">
+              <button id="pick-element" class="mdc-button mdc-button--tonal">
+                <i class="material-icons mdc-button__icon" aria-hidden="true">ads_click</i>
+                <span class="mdc-button__label">Выбрать элемент</span>
+              </button>
+              <button id="show-all" class="mdc-button mdc-button--tonal">
+                <i class="material-icons mdc-button__icon" aria-hidden="true">visibility</i>
+                <span class="mdc-button__label">Показать всё</span>
+              </button>
+            </div>
+            <button id="export" class="mdc-button mdc-button--tonal export-action">
+              <i class="material-icons mdc-button__icon" aria-hidden="true">save</i>
+              <span class="mdc-button__label">Экспорт</span>
+            </button>
+          </div>
+        </div>
+      </section>
+    </div>
+  </header>
+  
+  <!-- Main Content -->
+  <div class="main-content">
+    <!-- Preview Area -->
+    <div class="preview-container">
+      <iframe id="iframe" sandbox="allow-same-origin allow-scripts"></iframe>
+    </div>
+    
+    <!-- Sidebar -->
+    <div class="sidebar" id="sidebar">
+      <div class="sidebar-header">
+        <h2 class="mdc-typography--headline6">CSS-переменные</h2>
+        <p class="mdc-typography--body2" style="color:#666; margin-top:4px;">
+          Изменения применяются в реальном времени
+        </p>
+      </div>
+      
+      <div class="sidebar-content">
+        <div id="global-vars" class="var-group">
+          <div class="var-group-title">
+            <i class="material-icons">palette</i>
+            <span>Глобальные переменные</span>
+          </div>
+          <div id="global-vars-container"></div>
+        </div>
+        
+        <div id="element-vars" class="var-group" style="display:none;">
+          <div class="var-group-title">
+            <i class="material-icons">code</i>
+            <span>Переменные элемента</span>
+          </div>
+          <div id="element-vars-container"></div>
+        </div>
+        
+        <div id="empty-vars" class="empty-state">
+          <i class="material-icons">inbox</i>
+          <h3 class="mdc-typography--subtitle1">Нет переменных</h3>
+          <p class="mdc-typography--body2">
+            Загрузите MHTML/HTML файл или выберите элемент на странице для отображения CSS-переменных
+          </p>
+        </div>
+        
+        <div id="debug" class="debug-panel">
+          <div class="debug-title">Отладочная информация</div>
+          <div class="debug-content" id="debug-content"></div>
+        </div>
+      </div>
+    </div>
   </div>
-  <div id="sidebar">
-    <h3>CSS-переменные</h3>
-    <button id="pick-element" type="button">Выбрать элемент</button>
-    <button id="show-all" type="button" style="display:none; margin-left:10px;">Показать все</button>
-    <form id="vars"></form>
-    <button id="export">Экспорт в JSON</button>
-  </div>
+  
   <script>
+    // Инициализация Material Design компонентов
+    document.addEventListener('DOMContentLoaded', () => {
+      // Инициализация кнопок
+      const buttons = document.querySelectorAll('.mdc-button');
+      buttons.forEach(button => {
+        mdc.ripple.MDCRipple.attachTo(button);
+      });
+      
+      // Инициализация иконок
+      const iconButtons = document.querySelectorAll('.mdc-icon-button');
+      iconButtons.forEach(button => {
+        mdc.ripple.MDCRipple.attachTo(button);
+      });
+      
+      // Обработка загрузки файла
+      document.getElementById('file-button').addEventListener('click', () => {
+        document.getElementById('file').click();
+      });
+      
+      // Переключение сайдбара на мобильных устройствах
+      const sidebar = document.getElementById('sidebar');
+      const sidebarToggle = document.getElementById('sidebar-toggle');
+      
+      sidebarToggle.addEventListener('click', () => {
+        sidebar.classList.toggle('open');
+      });
+      
+      // Проверка на мобильные устройства
+      if (window.innerWidth <= 900) {
+        sidebarToggle.style.display = 'block';
+      }
+      
+      window.addEventListener('resize', () => {
+        if (window.innerWidth <= 900) {
+          sidebarToggle.style.display = 'block';
+        } else {
+          sidebarToggle.style.display = 'none';
+          sidebar.classList.remove('open');
+        }
+      });
+      
+      // Дублирующие кнопки в шапке
+      document.getElementById('pick-element').addEventListener('click', () => {
+        document.getElementById('pick-element').click();
+      });
+      document.getElementById('show-all').addEventListener('click', () => {
+        document.getElementById('show-all').click();
+      });
+      document.getElementById('export').addEventListener('click', (e) => {
+        e.preventDefault();
+        document.getElementById('export').click();
+      });
+    });
+    
+    // Переменные приложения
     let cssVars = {};
     let iframeDoc = null;
     let selectedElement = null;
     let allVarsSnapshot = null;
     let highlightBox = null;
-
-    // Загрузка MHTML
+    let allCssVarNames = [];
+    let allCssVars = {};
+    
+    // Функции редактора
     document.getElementById('file').addEventListener('change', async e => {
       const file = e.target.files[0];
       if (!file) return;
+      
+      // Обновление имени файла в шапке
+      document.getElementById('filename').textContent = file.name;
+      
       const ext = file.name.split('.').pop().toLowerCase();
       const iframe = document.getElementById('iframe');
+      
+      // Скрыть пустое состояние
+      document.getElementById('empty-vars').style.display = 'none';
+      document.getElementById('global-vars').style.display = 'block';
+      
       if (ext === 'html' || ext === 'htm') {
-        // Для HTML-файлов
         const content = await file.text();
         const blob = new Blob([content], {type: 'text/html'});
         const url = URL.createObjectURL(blob);
@@ -53,11 +516,10 @@
             iframeDoc = iframe.contentDocument || iframe.contentWindow.document;
             extractVars();
           } catch (err) {
-            alert('Ошибка доступа к содержимому. Возможно, CORS.');
+            showError('Ошибка доступа к содержимому. Возможно, CORS.');
           }
         };
       } else {
-        // Для MHTML-файлов (старый код)
         const url = URL.createObjectURL(file);
         iframe.src = url;
         iframe.onload = () => {
@@ -65,17 +527,18 @@
             iframeDoc = iframe.contentDocument || iframe.contentWindow.document;
             extractVars();
           } catch (err) {
-            alert('Ошибка доступа к содержимому. Возможно, CORS.');
+            showError('Ошибка доступа к содержимому. Возможно, CORS.');
           }
         };
       }
     });
-
-    // Извлечение CSS-переменных
+    
     function extractVars() {
       cssVars = {};
-      // 1. Стили из <style> и <link>
+      allCssVarNames = [];
+      allCssVars = {};
       const styles = Array.from(iframeDoc.querySelectorAll('style,link[rel="stylesheet"]'));
+      
       styles.forEach(styleNode => {
         let cssText = '';
         if (styleNode.tagName === 'STYLE') {
@@ -90,14 +553,17 @@
             }
           } catch {}
         }
+        
         const varRegex = /--([\w-]+)\s*:\s*([^;]+);/g;
         let match;
         while ((match = varRegex.exec(cssText))) {
+          if (!allCssVarNames.includes(match[1])) allCssVarNames.push(match[1]);
           cssVars[match[1]] = match[2].trim();
+          allCssVars[match[1]] = match[2].trim();
         }
       });
-
-      // 2. Стили на <html> и <body>
+      
+      // Обработка переменных в style у <html> и <body>
       ['html', 'body'].forEach(tag => {
         const el = iframeDoc.querySelector(tag);
         if (el && el.hasAttribute('style')) {
@@ -105,30 +571,38 @@
           const varRegex = /--([\w-]+)\s*:\s*([^;]+);/g;
           let match;
           while ((match = varRegex.exec(style))) {
+            if (!allCssVarNames.includes(match[1])) allCssVarNames.push(match[1]);
             cssVars[match[1]] = match[2].trim();
+            allCssVars[match[1]] = match[2].trim();
           }
         }
       });
-
+      
       renderVars();
     }
-
+    
     // Режим выбора элемента с подсветкой
     const pickBtn = document.getElementById('pick-element');
     const showAllBtn = document.getElementById('show-all');
-    pickBtn.onclick = () => {
-      if (!iframeDoc) return;
+    
+    pickBtn.addEventListener('click', () => {
+      if (!iframeDoc) {
+        showError('Сначала загрузите файл');
+        return;
+      }
+      
       pickBtn.disabled = true;
       iframeDoc.body.style.cursor = 'crosshair';
-
+      
       // Подсветка при наведении
       const mouseoverHandler = (e) => {
         highlightElement(e.target);
       };
+      
       const mouseoutHandler = (e) => {
         removeHighlight();
       };
-
+      
       // Клик — выбор элемента
       const clickHandler = (e) => {
         e.preventDefault();
@@ -137,45 +611,35 @@
         iframeDoc.body.style.cursor = '';
         pickBtn.disabled = false;
         showAllBtn.style.display = '';
-        removeHighlight();
+        
         iframeDoc.removeEventListener('mouseover', mouseoverHandler, true);
         iframeDoc.removeEventListener('mouseout', mouseoutHandler, true);
         iframeDoc.removeEventListener('click', clickHandler, true);
-
-        // Получаем переменные для выбранного элемента и родителей
+        
+        // Получаем переменные для выбранного элемента
+        const usedVars = getUsedVarsInRules(selectedElement, iframeDoc);
         let vars = {};
-        let el = selectedElement;
-        while (el) {
-          const computed = iframeDoc.defaultView.getComputedStyle(el);
-          for (let i = 0; i < computed.length; i++) {
-            const name = computed[i];
-            if (name.startsWith('--')) {
-              vars[name.replace('--','')] = computed.getPropertyValue(name).trim();
-            }
-          }
-          el = el.parentElement;
-        }
-        // Если переменных нет — берём из :root
-        if (Object.keys(vars).length === 0) {
-          const root = iframeDoc.documentElement;
-          const computed = iframeDoc.defaultView.getComputedStyle(root);
-          for (let i = 0; i < computed.length; i++) {
-            const name = computed[i];
-            if (name.startsWith('--')) {
-              vars[name.replace('--','')] = computed.getPropertyValue(name).trim();
-            }
-          }
-        }
-        allVarsSnapshot = {...cssVars}; // сохраняем полный список
+        const computed = iframeDoc.defaultView.getComputedStyle(selectedElement);
+        
+        usedVars.forEach(name => {
+          const value = computed.getPropertyValue('--' + name).trim();
+          if (value) vars[name] = value;
+          else if (allCssVars[name]) vars[name] = allCssVars[name];
+        });
+        
+        allVarsSnapshot = {...cssVars};
         cssVars = vars;
-        renderVars(true); // режим для выбранного элемента
+        
+        // Показываем раздел переменных элемента
+        document.getElementById('element-vars').style.display = 'block';
+        renderVars(true);
       };
-
+      
       iframeDoc.addEventListener('mouseover', mouseoverHandler, true);
       iframeDoc.addEventListener('mouseout', mouseoutHandler, true);
       iframeDoc.addEventListener('click', clickHandler, true);
-    };
-
+    });
+    
     function highlightElement(el) {
       removeHighlight();
       const rect = el.getBoundingClientRect();
@@ -191,81 +655,207 @@
       highlightBox.style.height = rect.height + 'px';
       iframeDoc.body.appendChild(highlightBox);
     }
-
+    
     function removeHighlight() {
       if (highlightBox && highlightBox.parentNode) {
         highlightBox.parentNode.removeChild(highlightBox);
         highlightBox = null;
       }
     }
+    
+    showAllBtn.addEventListener('click', () => {
+      cssVars = {...allCssVars};
+      renderVars();
+      showAllBtn.style.display = 'none';
+      removeHighlight();
+      selectedElement = null;
+      document.getElementById('element-vars').style.display = 'none';
+    });
+    
+    function renderVars(forSelected = false) {
+      const globalContainer = document.getElementById('global-vars-container');
+      const elementContainer = document.getElementById('element-vars-container');
+      const globalVarsBlock = document.getElementById('global-vars');
+      const elementVarsBlock = document.getElementById('element-vars');
+      const emptyVars = document.getElementById('empty-vars');
 
-    showAllBtn.onclick = () => {
-      if (allVarsSnapshot) {
-        cssVars = {...allVarsSnapshot};
-        renderVars();
-        showAllBtn.style.display = 'none';
-        selectedElement = null;
-      }
-    };
+      globalContainer.innerHTML = '';
+      elementContainer.innerHTML = '';
 
-    function renderVars(forSelected=false) {
-      const form = document.getElementById('vars');
-      form.innerHTML = '';
       if (Object.keys(cssVars).length === 0) {
-        form.innerHTML = '<div style="color:#888;">Переменные не найдены</div>';
+        emptyVars.style.display = 'flex';
+        globalVarsBlock.style.display = 'none';
+        elementVarsBlock.style.display = 'none';
         return;
+      } else {
+        emptyVars.style.display = 'none';
       }
+
+      if (forSelected) {
+        globalVarsBlock.style.display = 'none';
+        elementVarsBlock.style.display = 'block';
+      } else {
+        globalVarsBlock.style.display = 'block';
+        elementVarsBlock.style.display = 'none';
+      }
+
       Object.entries(cssVars).forEach(([name, value]) => {
+        const container = forSelected ? elementContainer : globalContainer;
+        
         const row = document.createElement('div');
         row.className = 'var-row';
-        const label = document.createElement('label');
+        
+        const label = document.createElement('div');
+        label.className = 'var-label';
         label.textContent = `--${name}`;
         row.appendChild(label);
+        
+        const controls = document.createElement('div');
+        controls.className = 'var-controls';
+        
         let input;
-        if (/^#([0-9a-f]{3,8})$/i.test(value) || /^rgb/.test(value)) {
-          input = document.createElement('input');
-          input.type = 'color';
-          input.value = rgb2hex(value) || value;
-        } else {
-          input = document.createElement('input');
-          input.type = 'text';
-          input.value = value;
+        const isColor = /^(#|rgb|hsl)/.test(value);
+        
+        if (isColor) {
+          const colorPreview = document.createElement('div');
+          colorPreview.className = 'color-preview';
+          colorPreview.style.backgroundColor = value;
+          colorPreview.style.position = 'relative';
+
+          // Новый input[type=color] поверх квадратика
+          const colorInput = document.createElement('input');
+          colorInput.type = 'color';
+          colorInput.value = rgb2hex(value) || value;
+          colorInput.style.opacity = '0';
+          colorInput.style.position = 'absolute';
+          colorInput.style.left = '0';
+          colorInput.style.top = '0';
+          colorInput.style.width = '100%';
+          colorInput.style.height = '100%';
+          colorInput.style.cursor = 'pointer';
+          colorInput.style.zIndex = '2';
+
+          colorInput.addEventListener('input', (e) => {
+            colorPreview.style.backgroundColor = e.target.value;
+            updateVarValue(name, e.target.value, forSelected);
+          });
+
+          colorPreview.appendChild(colorInput);
+          controls.appendChild(colorPreview);
         }
-        input.oninput = (e) => {
-          cssVars[name] = e.target.value;
-          if (forSelected && selectedElement) {
-            selectedElement.style.setProperty(`--${name}`, e.target.value);
-          } else {
-            updateVar(name, e.target.value);
+        
+        const textValue = document.createElement('div');
+        textValue.className = 'text-value';
+        textValue.textContent = value;
+        controls.appendChild(textValue);
+        
+        const textInput = document.createElement('input');
+        textInput.type = 'text';
+        textInput.className = 'mdc-text-field__input';
+        textInput.value = value;
+        textInput.style.display = 'none';
+        textInput.style.width = '120px';
+        textInput.style.padding = '4px 8px';
+        textInput.style.border = '1px solid #ddd';
+        textInput.style.borderRadius = '4px';
+        
+        textInput.addEventListener('input', (e) => {
+          updateVarValue(name, e.target.value, forSelected);
+          textValue.textContent = e.target.value;
+          if (isColor && /^(#|rgb|hsl)/.test(e.target.value)) {
+            const colorPreview = controls.querySelector('.color-preview');
+            if (colorPreview) {
+              colorPreview.style.backgroundColor = e.target.value;
+            }
           }
-        };
-        row.appendChild(input);
-        form.appendChild(row);
+        });
+        
+        controls.appendChild(textInput);
+        
+        const editButton = document.createElement('button');
+        editButton.className = 'mdc-icon-button material-icons';
+        editButton.textContent = 'edit';
+        editButton.style.fontSize = '18px';
+        editButton.addEventListener('click', () => {
+          textInput.style.display = 'block';
+          textValue.style.display = 'none';
+          editButton.style.display = 'none';
+          textInput.focus();
+        });
+        
+        controls.appendChild(editButton);
+        row.appendChild(controls);
+        container.appendChild(row);
       });
     }
-
-    // Применение переменной в iframe
+    
+    function updateVarValue(name, value, forSelected) {
+      cssVars[name] = value;
+      
+      if (forSelected && selectedElement) {
+        selectedElement.style.setProperty(`--${name}`, value);
+      } else {
+        updateVar(name, value);
+      }
+    }
+    
     function updateVar(name, value) {
       if (!iframeDoc) return;
       iframeDoc.documentElement.style.setProperty(`--${name}`, value);
     }
-
+    
     // Экспорт в JSON
-    document.getElementById('export').onclick = function(e) {
+    document.getElementById('export').addEventListener('click', function(e) {
       e.preventDefault();
+      
+      if (Object.keys(cssVars).length === 0) {
+        showError('Нет переменных для экспорта');
+        return;
+      }
+      
       const json = JSON.stringify(cssVars, null, 2);
       const blob = new Blob([json], {type: 'application/json'});
       const a = document.createElement('a');
       a.href = URL.createObjectURL(blob);
       a.download = 'css-vars.json';
       a.click();
-    };
-
-    // rgb/rgba в hex
+    });
+    
+    // Вспомогательные функции
     function rgb2hex(rgb) {
       const res = rgb.match(/^rgba?\((\d+),\s*(\d+),\s*(\d+)/i);
       if (!res) return null;
       return "#" + ((1 << 24) + (+res[1] << 16) + (+res[2] << 8) + (+res[3])).toString(16).slice(1);
+    }
+    
+    function getUsedVarsInRules(element, doc) {
+      const usedVars = new Set();
+      for (const sheet of doc.styleSheets) {
+        let cssRules;
+        try { cssRules = sheet.cssRules; } catch { continue; }
+        if (!cssRules) continue;
+        for (const rule of cssRules) {
+          if (rule.type === CSSRule.STYLE_RULE && element.matches(rule.selectorText)) {
+            const matches = rule.cssText.match(/var\(--([\w-]+)/g);
+            if (matches) {
+              matches.forEach(m => usedVars.add(m.replace('var(--','')));
+            }
+          }
+        }
+      }
+      return Array.from(usedVars);
+    }
+    
+    function showError(message) {
+      const snackbar = new mdc.snackbar.MDCSnackbar(document.createElement('div'));
+      snackbar.labelText = message;
+      snackbar.timeoutMs = 4000;
+      document.body.appendChild(snackbar.root);
+      snackbar.open();
+      
+      setTimeout(() => {
+        document.body.removeChild(snackbar.root);
+      }, 5000);
     }
   </script>
 </body>
