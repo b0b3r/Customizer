@@ -449,25 +449,25 @@
       
       // Переключение сайдбара на мобильных устройствах
       const sidebar = document.getElementById('sidebar');
-      const sidebarToggle = document.getElementById('sidebar-toggle');
+      // const sidebarToggle = document.getElementById('sidebar-toggle');
       
-      sidebarToggle?.addEventListener('click', () => {
-        sidebar.classList.toggle('open');
-      });
+      // sidebarToggle?.addEventListener('click', () => {
+      //   sidebar.classList.toggle('open');
+      // });
       
-      // Проверка на мобильные устройства
-      if (window.innerWidth <= 900) {
-        sidebarToggle.style.display = 'block';
-      }
+      // // Проверка на мобильные устройства
+      // if (window.innerWidth <= 900) {
+      //   sidebarToggle.style.display = 'block';
+      // }
       
-      window.addEventListener('resize', () => {
-        if (window.innerWidth <= 900) {
-          sidebarToggle.style.display = 'block';
-        } else {
-          sidebarToggle.style.display = 'none';
-          sidebar.classList.remove('open');
-        }
-      });
+      // window.addEventListener('resize', () => {
+      //   if (window.innerWidth <= 900) {
+      //     sidebarToggle.style.display = 'block';
+      //   } else {
+      //     sidebarToggle.style.display = 'none';
+      //     sidebar.classList.remove('open');
+      //   }
+      // });
       
       // Дублирующие кнопки в шапке
       document.getElementById('pick-element').addEventListener('click', () => {
