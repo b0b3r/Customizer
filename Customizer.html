@@ -793,7 +793,7 @@
       cssVars[name] = value;
       
       if (forSelected && selectedElement) {
-        selectedElement.style.setProperty(`--${name}`, value);
+        document.documentElement.style.setProperty(`--${name}`, value);
       } else {
         updateVar(name, value);
       }
